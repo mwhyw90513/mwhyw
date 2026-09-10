@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="theme-color" content="#ffd700">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="gold.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="gold-icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="gold-icon-512.png">
+<link rel="apple-touch-icon" href="gold-icon-192.png">
+<title>⛏️ 淘金者 - 手机版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+body {
+    background: #222;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    overflow: hidden;
+    padding: 6px;
+    padding-bottom: env(safe-area-inset-bottom, 6px);
+}
+#gameWrap { position: relative; width: 100%; max-width: 500px; }
+canvas#game { background: #fff; display: block; width: 100%; border: 3px solid #888; border-radius: 4px; image-rendering: pixelated; }
+#hud { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; color: #fff; font-size: 14px; font-weight: bold; width: 100%; max-width: 500px; gap: 6px; }
+#hud .left, #hud .right { background: #000; color: #ffd700; padding: 4px 10px; border-radius: 4px; font-family: 'Courier New', monospace; }
+#hud .center { background: #333; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; flex: 1; text-align: center; }
+#hud .icon-btn { background: #333; color: #fff; border: 1px solid #666; border-radius: 4px; padding: 4px 8px; font-size: 16px; cursor: pointer; }
+#controls { width: 100%; max-width: 500px; display: flex; justify-content: space-between; align-items: flex-end; padding: 8px 4px; flex: 1; }
+#dpad { position: relative; width: 140px; height: 140px; }
+.dpad-btn { position: absolute; width: 46px; height: 46px; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; font-weight: bold; }
+.dpad-btn:active, .dpad-btn.active { background: rgba(255,215,0,0.6); }
+#btnUp    { top: 0; left: 50%; transform: translateX(-50%); }
+#btnDown  { bottom: 0; left: 50%; transform: translateX(-50%); }
+#btnLeft  { left: 0; top: 50%; transform: translateY(-50%); }
+#btnRight { right: 0; top: 50%; transform: translateY(-50%); }
+#actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+.action-btn { width: 60px; height: 60px; background: rgba(255,100,0,0.7); border: 3px solid rgba(255,200,100,0.8); border-radius: 50%; color: #fff; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+.action-btn:active, .action-btn.active { background: rgba(255,215,0,0.8); }
+#btnDig { font-size: 24px; }
+#btnRetry { background: rgba(100,100,255,0.7); border-color: rgba(150,150,255,0.8); font-size: 14px; width: 64px; height: 64px; }
+#hint { color: #888; font-size: 11px; text-align: center; padding: 4px; }
+.back-link { color: #888; font-size: 12px; text-decoration: none; padding: 4px 8px; }
+.back-link:active { color: #ffd700; }
+footer { color: #666; font-size: 10px; text-align: center; padding: 4px; max-width: 500px; }
+#particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
+#settingsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 2000; justify-content: center; align-items: center; padding: 16px; }
+#settingsModal.show { display: flex; }
+#settingsModal .box { background: #2a2a2a; color: #fff; padding: 24px; border-radius: 12px; max-width: 340px; width: 100%; border: 2px solid #555; }
+#settingsModal h3 { margin-bottom: 16px; text-align: center; font-size: 18px; }
+#settingsModal label { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; font-size: 15px; gap: 10px; }
+#settingsModal input[type=checkbox] { width: 20px; height: 20px; accent-color: #ffd700; }
+#settingsModal input[type=range] { width: 140px; accent-color: #ffd700; }
+#settingsModal select { padding: 4px 8px; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; font-size: 14px; }
+#settingsModal .row { display: flex; gap: 8px; margin-top: 20px; }
+#settingsModal button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; color: #fff; }
+#settingsModal #setReset { background: #c00; }
+#settingsModal #setClose { background: #444; }
+@media (orientation: landscape) and (max-height: 500px) {
+    #controls { padding: 4px; }
+    #dpad { width: 110px; height: 110px; }
+    .dpad-btn { width: 36px; height: 36px; font-size: 18px; }
+    .action-btn { width: 48px; height: 48px; font-size: 11px; }
+    #btnRetry { width: 52px; height: 52px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="hud">
+    <div class="left" id="levelText">LV.1</div>
+    <div class="center" id="statusText">淘金中…</div>
+    <div class="right" id="goldText">💰 0</div>
+    <button class="icon-btn" id="goldSettings" aria-label="设置">⚙️</button>
+</div>
+
+<div id="gameWrap">
+    <canvas id="game"></canvas>
+</div>
+
+<div id="controls">
+    <div id="dpad">
+        <div class="dpad-btn" id="btnUp" aria-label="向上">▲</div>
+        <div class="dpad-btn" id="btnDown" aria-label="向下">▼</div>
+        <div class="dpad-btn" id="btnLeft" aria-label="向左">◀</div>
+        <div class="dpad-btn" id="btnRight" aria-label="向右">▶</div>
+    </div>
+    <div id="actions">
+        <div class="action-btn" id="btnDig" aria-label="挖坑">⛏️</div>
+        <div class="action-btn" id="btnRetry" aria-label="重来">重来</div>
+    </div>
+</div>
+<div id="hint">方向键移动 / 爬梯 &nbsp;|&nbsp; ⛏️ 挖坑 &nbsp;|&nbsp; <a class="back-link" href="./index.html">◀ 返回菜单</a></div>
+<footer>本游戏完全离线运行，不收集任何个人数据。进度保存在你的浏览器本地。</footer>
+
+<div id="settingsModal">
+    <div class="box">
+        <h3>⚙️ 设置</h3>
+        <label><span>音效</span><input type="checkbox" id="setSfx"></label>
+        <label><span>背景音乐</span><input type="checkbox" id="setBgm"></label>
+        <label><span>音乐音量</span><input type="range" id="setVol" min="0" max="100"></label>
+        <label><span>语言</span>
+            <select id="setLang">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+        </label>
+        <div class="row">
+            <button id="setReset">重置存档</button>
+            <button id="setClose">关闭</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="particleCanvas"></canvas>
+
+<script>
+/* ============================================================
+ *  公共模块
+ * ============================================================ */
+const Settings = (() => {
+    const KEY = 'minigames_settings_v1';
+    const defaults = { sfx: true, bgm: true, bgmVolume: 0.5, lang: 'zh' };
+    let data = { ...defaults };
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) data = { ...defaults, ...s }; } catch {}
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+    function apply() {
+        if (typeof AudioFX !== 'undefined' && AudioFX.setEnabled) AudioFX.setEnabled(data.sfx);
+        if (typeof BGM !== 'undefined') {
+            if (data.bgm) { BGM.start(); BGM.setVolume(data.bgmVolume); }
+            else BGM.stop();
+        }
+    }
+    return {
+        get: k => data[k],
+        set: (k, v) => { data[k] = v; save(); apply(); },
+        reset: () => { data = { ...defaults }; save(); apply(); },
+        apply
+    };
+})();
+
+const AudioFX = (() => {
+    let ctxAudio = null, enabled = true, lastMove = 0;
+    function ensure() {
+        if (!ctxAudio) {
+            try { ctxAudio = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch { enabled = false; }
+        }
+        if (ctxAudio && ctxAudio.state === 'suspended') ctxAudio.resume();
+    }
+    function beep(freq, duration, type = 'square', volume = 0.08) {
+        if (!enabled) return;
+        ensure(); if (!ctxAudio) return;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, ctxAudio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctxAudio.currentTime + duration);
+        osc.connect(gain); gain.connect(ctxAudio.destination);
+        osc.start(); osc.stop(ctxAudio.currentTime + duration);
+    }
+    return {
+        move: () => { const n = Date.now(); if (n - lastMove < 120) return; lastMove = n; beep(220, 0.05, 'square', 0.04); },
+        dig: () => beep(120, 0.12, 'sawtooth', 0.08),
+        gold: () => { beep(880, 0.08, 'square', 0.08); setTimeout(() => beep(1320, 0.1, 'square', 0.08), 60); },
+        win: () => { [523,659,784,1046].forEach((f,i) => setTimeout(() => beep(f, 0.15, 'triangle', 0.1), i*100)); },
+        lose: () => { beep(200, 0.3, 'sawtooth', 0.1); setTimeout(() => beep(120, 0.4, 'sawtooth', 0.1), 150); },
+        trap: () => beep(150, 0.25, 'sawtooth', 0.12),
+        unlock: () => ensure(),
+        setEnabled: v => { enabled = v; }
+    };
+})();
+
+['touchstart','mousedown','keydown'].forEach(ev =>
+    window.addEventListener(ev, () => AudioFX.unlock(), { once: true })
+);
+
+const BGM = (() => {
+    let ctxBGM = null, masterGain = null, isPlaying = false, loopTimer = null, currentStep = 0;
+    const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    const BASS = [65.41, 65.41, 87.31, 98.00, 65.41, 65.41, 87.31, 98.00];
+    const MELODY = [0, 2, 4, 2, 5, 4, 2, 0, 1, 3, 5, 3, 6, 5, 3, 1];
+    const STEP_MS = 220;
+    function ensureCtx() {
+        if (!ctxBGM) {
+            try { ctxBGM = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch { return false; }
+        }
+        if (ctxBGM.state === 'suspended') ctxBGM.resume();
+        return true;
+    }
+    function playNote(freq, duration, type, volume, when) {
+        if (!ctxBGM) return;
+        const osc = ctxBGM.createOscillator();
+        const gain = ctxBGM.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        const t0 = when || ctxBGM.currentTime;
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(volume, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+        osc.connect(gain); gain.connect(masterGain);
+        osc.start(t0); osc.stop(t0 + duration);
+    }
+    function tick() {
+        if (!isPlaying || !ctxBGM) return;
+        const now = ctxBGM.currentTime;
+        const noteIdx = MELODY[currentStep % MELODY.length];
+        if (noteIdx > 0) playNote(SCALE[noteIdx - 1], 0.35, 'triangle', 0.06, now);
+        if (currentStep % 4 === 0) {
+            const bassIdx = Math.floor(currentStep / 4) % BASS.length;
+            playNote(BASS[bassIdx], 0.7, 'sine', 0.10, now);
+        }
+        if (currentStep % 2 === 0) {
+            const osc = ctxBGM.createOscillator();
+            const gain = ctxBGM.createGain();
+            osc.type = 'square'; osc.frequency.value = 60;
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(now); osc.stop(now + 0.08);
+        }
+        currentStep++;
+        loopTimer = setTimeout(tick, STEP_MS);
+    }
+    return {
+        start() {
+            if (isPlaying) return;
+            if (!ensureCtx()) return;
+            if (!masterGain) { masterGain = ctxBGM.createGain(); masterGain.gain.value = 0.5; masterGain.connect(ctxBGM.destination); }
+            isPlaying = true; currentStep = 0; tick();
+        },
+        stop() { isPlaying = false; if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; } },
+        setVolume(v) { if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v)); },
+        isPlaying() { return isPlaying; }
+    };
+})();
+
+const Particles = (() => {
+    const canvas = document.getElementById('particleCanvas');
+    const pctx = canvas.getContext('2d');
+    let list = [], rafId = null;
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    function spawn(x, y, color, count = 8, speed = 3) {
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+            const v = speed * (0.5 + Math.random());
+            list.push({ x, y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v - 1, life: 1, decay: 0.02 + Math.random() * 0.02, color, size: 2 + Math.random() * 3 });
+        }
+        if (!rafId) loop();
+    }
+    function loop() {
+        rafId = requestAnimationFrame(loop);
+        pctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = list.length - 1; i >= 0; i--) {
+            const p = list[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.98; p.life -= p.decay;
+            if (p.life <= 0) { list.splice(i, 1); continue; }
+            pctx.globalAlpha = p.life; pctx.fillStyle = p.color;
+            pctx.beginPath(); pctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); pctx.fill();
+        }
+        pctx.globalAlpha = 1;
+        if (list.length === 0) { cancelAnimationFrame(rafId); rafId = null; pctx.clearRect(0, 0, canvas.width, canvas.height); }
+    }
+    return { spawn };
+})();
+
+/* ---------- 设置弹窗 ---------- */
+const settingsModal = document.getElementById('settingsModal');
+function openSettings() {
+    document.getElementById('setSfx').checked = Settings.get('sfx');
+    document.getElementById('setBgm').checked = Settings.get('bgm');
+    document.getElementById('setVol').value = Math.round(Settings.get('bgmVolume') * 100);
+    document.getElementById('setLang').value = Settings.get('lang');
+    settingsModal.classList.add('show');
+}
+document.getElementById('goldSettings').addEventListener('click', openSettings);
+document.getElementById('setSfx').addEventListener('change', e => Settings.set('sfx', e.target.checked));
+document.getElementById('setBgm').addEventListener('change', e => Settings.set('bgm', e.target.checked));
+document.getElementById('setVol').addEventListener('input', e => Settings.set('bgmVolume', e.target.value / 100));
+document.getElementById('setLang').addEventListener('change', e => Settings.set('lang', e.target.value));
+document.getElementById('setReset').addEventListener('click', () => {
+    if (confirm('确定要重置所有存档和设置吗？')) {
+        localStorage.removeItem('goldminer_save_v2');
+        Settings.reset();
+        alert('已重置');
+        location.reload();
+    }
+});
+document.getElementById('setClose').addEventListener('click', () => settingsModal.classList.remove('show'));
+settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.classList.remove('show'); });
+
+/* ---------- 首次交互启动 BGM ---------- */
+['touchstart','mousedown','keydown'].forEach(ev =>
+    window.addEventListener(ev, () => { if (Settings.get('bgm')) Settings.apply(); }, { once: true })
+);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) BGM.stop();
+    else if (Settings.get('bgm')) BGM.start();
+});
+
+/* ============================================================
+ *  淘金者
+ * ============================================================ */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const BASE_WIDTH = 800, BASE_HEIGHT = 600, WIDTH_INCREMENT = 160;
+const BLOCK_SIZE = 32, PLAYER_SPEED = 3.0, DIG_TIME = 240, MAX_LEVEL = 150;
+const COLORS = {
+    white: '#fff', black: '#000',
+    grayBrick: '#c8c8c8', grayBorder: '#787878',
+    brownDirt: '#8b4513', brownDirtBorder: '#5a280a',
+    gold: '#ffd700', goldBorder: '#c8a000',
+    ladderBg: '#505050', ladderLine: '#ffff00',
+    trapDark: '#323232', trapRed: '#ff0000',
+    red: '#ff3232', exitGreen: '#00c800'
+};
+
+let currentLevel = 1, screenWidth = BASE_WIDTH, screenHeight = BASE_HEIGHT;
+let bricks = [], ladders = [], golds = [], traps = [], enemies = [];
+let exitLadder = null, win = false, player = null, totalGolds = 0;
+
+const keys = { left: false, right: false, up: false, down: false, dig: false };
+
+function resizeCanvas() {
+    const wrap = document.getElementById('gameWrap');
+    const maxW = wrap.clientWidth;
+    const scale = maxW / screenWidth;
+    canvas.width = screenWidth;
+    canvas.height = screenHeight;
+    canvas.style.width = maxW + 'px';
+    canvas.style.height = (screenHeight * scale) + 'px';
+}
+
+class Brick {
+    constructor(x, y, typeId) {
+        this.x = x; this.y = y; this.w = BLOCK_SIZE; this.h = BLOCK_SIZE;
+        this.typeId = typeId; this.digTimer = 0; this.trappedEnemy = null;
+    }
+    dig() {
+        const groundRow = Math.floor((screenHeight - BLOCK_SIZE) / BLOCK_SIZE);
+        const myRow = Math.floor(this.y / BLOCK_SIZE);
+        if (this.typeId === 1 && myRow === groundRow) return;
+        if (this.typeId === 1) this.digTimer = -1;
+        else if (this.digTimer === 0) this.digTimer = DIG_TIME;
+    }
+    update() {
+        if (this.digTimer > 0) {
+            this.digTimer--;
+            if (this.digTimer === 1 && this.trappedEnemy) {
+                const idx = enemies.indexOf(this.trappedEnemy);
+                if (idx >= 0) { enemies.splice(idx, 1); AudioFX.trap(); }
+                this.trappedEnemy = null;
+            }
+        }
+    }
+    get isSolid() { if (this.digTimer === -1) return false; return this.digTimer <= 0; }
+    get isPit() { return this.digTimer > 0; }
+    draw() {
+        if (this.digTimer === -1) return;
+        if (this.digTimer > 0) {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.strokeStyle = this.trappedEnemy ? '#ff0000' : '#666';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+            if (this.trappedEnemy) {
+                ctx.strokeStyle = '#ff3232'; ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x + 8, this.y + 8); ctx.lineTo(this.x + this.w - 8, this.y + this.h - 8);
+                ctx.moveTo(this.x + this.w - 8, this.y + 8); ctx.lineTo(this.x + 8, this.y + this.h - 8);
+                ctx.stroke();
+            }
+        } else {
+            if (this.typeId === 1) {
+                ctx.fillStyle = COLORS.grayBrick; ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.strokeStyle = COLORS.grayBorder; ctx.lineWidth = 2;
+                ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+            } else if (this.typeId === 2) {
+                ctx.fillStyle = COLORS.brownDirt; ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.strokeStyle = COLORS.brownDirtBorder; ctx.lineWidth = 2;
+                ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
+            }
+        }
+    }
+}
+
+class Player {
+    constructor(x, y) {
+        this.x = x; this.y = y; this.w = BLOCK_SIZE; this.h = BLOCK_SIZE;
+        this.velY = 0; this.onLadder = false; this.animTimer = 0; this.collected = 0; this.facing = 1;
+    }
+    rect() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
+    update(solids, traps) {
+        this.onLadder = false;
+        const pr = this.rect();
+        for (const lad of ladders) if (rectCollide(pr, lad)) { this.onLadder = true; break; }
+        let dx = 0, dy = 0;
+        if (keys.left)  { dx = -PLAYER_SPEED; this.facing = -1; }
+        if (keys.right) { dx =  PLAYER_SPEED; this.facing =  1; }
+        if (this.onLadder) {
+            if (keys.up)   dy = -PLAYER_SPEED;
+            if (keys.down) dy =  PLAYER_SPEED;
+            this.velY = 0;
+        } else { this.velY += 0.5; dy += this.velY; }
+        this.x += dx;
+        let pr2 = this.rect();
+        for (const s of solids.concat(traps)) {
+            if (rectCollide(pr2, s)) {
+                if (dx > 0) this.x = s.x - this.w;
+                if (dx < 0) this.x = s.x + s.w;
+                pr2 = this.rect();
+            }
+        }
+        this.y += dy;
+        pr2 = this.rect();
+        for (const s of solids.concat(traps)) {
+            if (rectCollide(pr2, s)) {
+                if (dy > 0) { this.y = s.y - this.h; this.velY = 0; }
+                if (dy < 0) { this.y = s.y + s.h; this.velY = 0; }
+                pr2 = this.rect();
+            }
+        }
+        this.x = Math.max(0, Math.min(this.x, screenWidth - this.w));
+        this.y = Math.max(0, Math.min(this.y, screenHeight - this.h));
+        if (keys.dig) {
+            const targetX = this.x + this.w / 2 + this.facing * BLOCK_SIZE;
+            const targetY = this.y + this.h / 2;
+            let found = false;
+            for (const b of bricks) {
+                if (pointInRect(targetX, targetY, {x:b.x,y:b.y,w:BLOCK_SIZE,h:BLOCK_SIZE}) && b.digTimer === 0) {
+                    b.dig(); found = true; AudioFX.dig(); break;
+                }
+            }
+            if (!found) {
+                const footX = this.x + this.w / 2;
+                const footY = this.y + this.h + 5;
+                for (const b of bricks) {
+                    if (pointInRect(footX, footY, {x:b.x,y:b.y,w:BLOCK_SIZE,h:BLOCK_SIZE}) && b.digTimer === 0) {
+                        b.dig(); AudioFX.dig(); break;
+                    }
+                }
+            }
+        }
+        if (dx !== 0) { this.animTimer += 0.2; AudioFX.move(); }
+    }
+    draw() {
+        const cx = this.x + this.w / 2, bottom = this.y + this.h - 2, top = this.y + 6;
+        const legSwing = this.animTimer > 0 ? 3 : 0;
+        ctx.strokeStyle = COLORS.black; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom - 10); ctx.stroke();
+        ctx.fillStyle = COLORS.black;
+        ctx.beginPath(); ctx.arc(cx, top - 2, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx, top + 6); ctx.lineTo(cx + this.facing * 5, top + 10 + legSwing);
+        ctx.moveTo(cx, top + 6); ctx.lineTo(cx - this.facing * 5, top + 10 - legSwing);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, bottom - 10); ctx.lineTo(cx - 5, bottom - legSwing);
+        ctx.moveTo(cx, bottom - 10); ctx.lineTo(cx + 5, bottom + legSwing);
+        ctx.stroke();
+    }
+}
+
+class Enemy {
+    constructor(x, y, chaseLevel = 0) {
+        this.x = x; this.y = y; this.w = BLOCK_SIZE; this.h = BLOCK_SIZE;
+        this.velY = 0; this.direction = 1; this.onLadder = false;
+        this.ladderCooldown = 0; this.thinkTimer = 0;
+        this.chaseLevel = chaseLevel; this.trapped = false; this.trapTimer = 0;
+    }
+    rect() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
+    checkPit() {
+        for (const b of bricks) {
+            if (b.isPit && rectCollide(this.rect(), b)) {
+                if (!this.trapped) {
+                    this.trapped = true; this.trapTimer = DIG_TIME;
+                    b.trappedEnemy = this; this.velY = 0; this.direction = 0;
+                }
+                return b;
+            }
+        }
+        return null;
+    }
+    update(solids, traps, player) {
+        if (this.trapped) {
+            this.trapTimer--;
+            if (this.trapTimer <= 0) {
+                const idx = enemies.indexOf(this);
+                if (idx >= 0) enemies.splice(idx, 1);
+            }
+            return;
+        }
+        const pit = this.checkPit();
+        if (pit) return;
+        this.onLadder = false;
+        const r0 = this.rect();
+        for (const lad of ladders) if (rectCollide(r0, lad)) { this.onLadder = true; break; }
+        this.thinkTimer++;
+        if (this.thinkTimer > 20) {
+            this.thinkTimer = 0;
+            if (this.chaseLevel > 0 && player) {
+                const dx = (player.x + player.w / 2) - (this.x + this.w / 2);
+                const dy = (player.y + player.h / 2) - (this.y + this.h / 2);
+                const dist = Math.hypot(dx, dy);
+                const chaseRange = this.chaseLevel === 2 ? 9999 : 200;
+                if (dist < chaseRange) {
+                    if (Math.abs(dx) > 8) {
+                        const wantDir = dx > 0 ? 1 : -1;
+                        if (this.chaseLevel === 2 || Math.random() < 0.7) this.direction = wantDir;
+                    }
+                    if (this.onLadder && Math.abs(dy) > 8) {
+                        const wantV = dy < 0 ? -1.5 : 1.5;
+                        if (this.chaseLevel === 2 || Math.random() < 0.6) { this.velY = wantV; this.ladderCooldown = 20; }
+                    }
+                } else {
+                    if (this.onLadder && Math.random() < 0.3) this.direction *= -1;
+                }
+            } else {
+                if (this.onLadder && Math.random() < 0.5) this.direction *= -1;
+            }
+        }
+        if (this.direction !== 0) {
+            this.x += this.direction * 1.5;
+            let r = this.rect();
+            for (const s of solids.concat(traps)) {
+                if (rectCollide(r, s)) {
+                    if (this.direction > 0) this.x = s.x - this.w;
+                    else this.x = s.x + s.w;
+                    this.direction *= -1; r = this.rect();
+                }
+            }
+        }
+        if (this.onLadder) {
+            if (this.ladderCooldown > 0) this.ladderCooldown--;
+            else if (Math.random() < 0.02) { this.velY = Math.random() < 0.5 ? -1.5 : 1.5; this.ladderCooldown = 30; }
+            this.y += this.velY;
+            let rv = this.rect();
+            for (const s of solids) {
+                if (rectCollide(rv, s)) {
+                    if (this.velY > 0) this.y = s.y - this.h; else this.y = s.y + s.h;
+                    this.velY = 0; rv = this.rect();
+                }
+            }
+            let cur = null;
+            for (const lad of ladders) if (rectCollide(this.rect(), lad)) { cur = lad; break; }
+            if (cur) {
+                if (this.y < cur.y) { this.y = cur.y; this.velY = 0; }
+                if (this.y + this.h > cur.y + cur.h) { this.y = cur.y + cur.h - this.h; this.velY = 0; }
+            }
+        } else {
+            this.velY += 0.5;
+            this.y += this.velY;
+            let r = this.rect();
+            for (const s of solids.concat(traps)) {
+                if (rectCollide(r, s)) { this.y = s.y - this.h; this.velY = 0; r = this.rect(); }
+            }
+        }
+        this.x = Math.max(BLOCK_SIZE, Math.min(this.x, screenWidth - BLOCK_SIZE - this.w));
+        if (this.y > screenHeight) { this.y = 0; this.velY = 0; }
+        this.checkPit();
+    }
+    draw() {
+        if (this.trapped) return;
+        const cx = this.x + this.w / 2, bottom = this.y + this.h - 2, top = this.y + 4;
+        const isChasing = this.chaseLevel > 0 && player && Math.hypot((player.x - this.x), (player.y - this.y)) < 200;
+        ctx.strokeStyle = isChasing ? '#cc0000' : COLORS.red;
+        ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx, top + 6); ctx.lineTo(cx, bottom - 10); ctx.stroke();
+        ctx.fillStyle = isChasing ? '#cc0000' : COLORS.red;
+        ctx.beginPath(); ctx.arc(cx, top - 2, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, top - 1, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000'; ctx.beginPath();
+        ctx.arc(cx - 2, top - 2, 1.2, 0, Math.PI * 2);
+        ctx.arc(cx + 2, top - 2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        if (this.onLadder) { ctx.fillStyle = '#ff0'; ctx.fillRect(cx - 2, bottom + 2, 4, 4); }
+    }
+}
+
+function rectCollide(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+function pointInRect(px, py, r) { return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h; }
+function isGoldReachable(col, row, totalRows, brickList, ladderSet) {
+    if (row >= totalRows - 2) return true;
+    if (ladderSet.has(col + ',' + row)) return true;
+    for (const b of brickList) {
+        const bc = Math.floor(b.x / BLOCK_SIZE), br = Math.floor(b.y / BLOCK_SIZE);
+        if (bc === col && br === row + 1 && b.typeId >= 1) return true;
+    }
+    return false;
+}
+
+function difficultyCurve(level) {
+    const widthTier = Math.floor((level - 1) / 10);
+    const extraRows = Math.min(12, Math.floor((level - 1) / 4));
+    const goldCount = Math.min(18, 3 + Math.floor((level - 1) / 5));
+    const enemyCount = Math.min(10, 1 + Math.floor((level - 1) / 4));
+    const trapCount = Math.min(14, 2 + Math.floor((level - 1) / 6));
+    let chaseLevel = 0;
+    if (level >= 15) chaseLevel = 2;
+    else if (level >= 5) chaseLevel = 1;
+    return { widthTier, extraRows, goldCount, enemyCount, trapCount, chaseLevel };
+}
+
+function generateLevel(level) {
+    bricks = []; ladders = []; golds = []; traps = []; enemies = [];
+    exitLadder = null; win = false; player = null;
+    const diff = difficultyCurve(level);
+    screenWidth = BASE_WIDTH + diff.widthTier * WIDTH_INCREMENT;
+    const totalRows = 14 + diff.extraRows;
+    screenHeight = totalRows * BLOCK_SIZE;
+    resizeCanvas();
+    const cols = Math.floor(screenWidth / BLOCK_SIZE);
+    const spawnCol = 2, spawnRow = 1;
+    const spawnZone = new Set();
+    for (let dr = -1; dr <= 2; dr++) for (let dc = -1; dc <= 2; dc++) {
+        const nr = spawnRow + dr, nc = spawnCol + dc;
+        if (nr >= 0 && nr < totalRows && nc >= 0 && nc < cols) spawnZone.add(nc + ',' + nr);
+    }
+    const ladderCols = [];
+    const ladderStep = Math.max(3, Math.floor(cols / 7));
+    for (let c = 3; c < cols - 2; c += ladderStep) ladderCols.push(c);
+    if (ladderCols.length < 2) { ladderCols.push(3, cols - 4); }
+    const ladderSet = new Set();
+    for (const col of ladderCols) {
+        for (let row = 0; row <= totalRows - 2; row++) {
+            if (row > 0 && Math.random() < 0.12) continue;
+            ladders.push({ x: col * BLOCK_SIZE, y: row * BLOCK_SIZE, w: BLOCK_SIZE, h: BLOCK_SIZE });
+            ladderSet.add(col + ',' + row);
+        }
+    }
+    for (const col of ladderCols) {
+        const r = totalRows - 2;
+        if (!ladderSet.has(col + ',' + r)) {
+            ladders.push({ x: col * BLOCK_SIZE, y: r * BLOCK_SIZE, w: BLOCK_SIZE, h: BLOCK_SIZE });
+            ladderSet.add(col + ',' + r);
+        }
+    }
+    const groundRow = totalRows - 1;
+    for (let col = 0; col < cols; col++) bricks.push(new Brick(col * BLOCK_SIZE, groundRow * BLOCK_SIZE, 1));
+    for (let row = 1; row < totalRows; row++) {
+        bricks.push(new Brick(0, row * BLOCK_SIZE, 1));
+        bricks.push(new Brick((cols - 1) * BLOCK_SIZE, row * BLOCK_SIZE, 1));
+    }
+    const dirtLayers = [];
+    const layerStep = Math.max(3, Math.floor(totalRows / 5));
+    for (let r = layerStep; r < totalRows - 1; r += layerStep) dirtLayers.push(r);
+    if (level > 20) for (let r = layerStep * 2; r < totalRows - 1; r += layerStep * 2) if (!dirtLayers.includes(r)) dirtLayers.push(r);
+    const dirtDensity = Math.min(0.75, 0.45 + level * 0.003);
+    for (const row of dirtLayers) {
+        for (let col = 2; col < cols - 2; col++) {
+            const key = col + ',' + row;
+            if (ladderSet.has(key) || spawnZone.has(key)) continue;
+            if (Math.random() < dirtDensity) bricks.push(new Brick(col * BLOCK_SIZE, row * BLOCK_SIZE, 2));
+        }
+    }
+    const brickSet = new Set();
+    for (const b of bricks) brickSet.add(Math.floor(b.x / BLOCK_SIZE) + ',' + Math.floor(b.y / BLOCK_SIZE));
+    let trapPlaced = 0, trapAttempts = 0;
+    while (trapPlaced < diff.trapCount && trapAttempts < 400) {
+        trapAttempts++;
+        const tc = Math.floor(Math.random() * (cols - 4)) + 2;
+        const tr = Math.floor(Math.random() * (totalRows - 3)) + 1;
+        const key = tc + ',' + tr;
+        if (ladderSet.has(key) || brickSet.has(key) || spawnZone.has(key)) continue;
+        if (traps.some(t => Math.floor(t.x / BLOCK_SIZE) === tc && Math.floor(t.y / BLOCK_SIZE) === tr)) continue;
+        traps.push({ x: tc * BLOCK_SIZE, y: tr * BLOCK_SIZE, w: BLOCK_SIZE, h: BLOCK_SIZE });
+        trapPlaced++;
+    }
+    let placed = 0, attempts = 0;
+    while (placed < diff.goldCount && attempts < 1000) {
+        attempts++;
+        const gx = Math.floor(Math.random() * (cols - 4)) + 2;
+        const gy = Math.floor(Math.random() * (totalRows - 3)) + 1;
+        const key = gx + ',' + gy;
+        if (ladderSet.has(key) || brickSet.has(key) || spawnZone.has(key)) continue;
+        if (traps.some(t => Math.floor(t.x / BLOCK_SIZE) === gx && Math.floor(t.y / BLOCK_SIZE) === gy)) continue;
+        if (golds.some(g => Math.floor(g.x / BLOCK_SIZE) === gx && Math.floor(g.y / BLOCK_SIZE) === gy)) continue;
+        if (!isGoldReachable(gx, gy, totalRows, bricks, ladderSet)) continue;
+        golds.push({ x: gx * BLOCK_SIZE, y: gy * BLOCK_SIZE, w: BLOCK_SIZE, h: BLOCK_SIZE });
+        placed++;
+    }
+    totalGolds = golds.length;
+    for (let i = 0; i < diff.enemyCount; i++) {
+        let ex, ey, tries = 0;
+        do {
+            ex = Math.floor(Math.random() * (cols / 2)) + Math.floor(cols / 2);
+            ey = Math.floor(Math.random() * (totalRows - 4)) + 1;
+            tries++;
+        } while (spawnZone.has(ex + ',' + ey) && tries < 50);
+        enemies.push(new Enemy(ex * BLOCK_SIZE, ey * BLOCK_SIZE, diff.chaseLevel));
+    }
+    player = new Player(spawnCol * BLOCK_SIZE, spawnRow * BLOCK_SIZE);
+    updateHUD();
+}
+
+function drawLadder(ladder, color) {
+    ctx.fillStyle = COLORS.ladderBg; ctx.fillRect(ladder.x, ladder.y, ladder.w, ladder.h);
+    ctx.strokeStyle = color || COLORS.ladderLine; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(ladder.x + 8, ladder.y); ctx.lineTo(ladder.x + 8, ladder.y + 32);
+    ctx.moveTo(ladder.x + 24, ladder.y); ctx.lineTo(ladder.x + 24, ladder.y + 32);
+    ctx.moveTo(ladder.x + 8, ladder.y + 8); ctx.lineTo(ladder.x + 24, ladder.y + 8);
+    ctx.moveTo(ladder.x + 8, ladder.y + 24); ctx.lineTo(ladder.x + 24, ladder.y + 24);
+    ctx.stroke();
+}
+function drawGold(gold) {
+    ctx.fillStyle = COLORS.gold; ctx.fillRect(gold.x + 8, gold.y + 8, 16, 16);
+    ctx.strokeStyle = COLORS.goldBorder; ctx.lineWidth = 2;
+    ctx.strokeRect(gold.x + 8.5, gold.y + 8.5, 15, 15);
+}
+function drawTrap(trap) {
+    ctx.fillStyle = COLORS.trapDark; ctx.fillRect(trap.x, trap.y, trap.w, trap.h);
+    ctx.strokeStyle = COLORS.trapRed; ctx.lineWidth = 2;
+    ctx.strokeRect(trap.x + 1, trap.y + 1, trap.w - 2, trap.h - 2);
+}
+function updateHUD() {
+    document.getElementById('levelText').textContent = 'LV.' + currentLevel + '/' + MAX_LEVEL;
+    document.getElementById('goldText').textContent = '💰 ' + (player ? player.collected : 0) + '/' + totalGolds;
+    let status = '淘金中…';
+    if (win) status = '出口出现！';
+    else {
+        const diff = difficultyCurve(currentLevel);
+        if (diff.chaseLevel === 2) status = '⚠️ 敌人追击中！';
+        else if (diff.chaseLevel === 1) status = '敌人活跃';
+    }
+    document.getElementById('statusText').textContent = status;
+}
+
+function gameLoop() {
+    for (const b of bricks) b.update();
+    const solidRects = bricks.filter(b => b.isSolid).map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h }));
+    player.update(solidRects, traps);
+    const pr = player.rect();
+    for (let i = golds.length - 1; i >= 0; i--) {
+        if (rectCollide(pr, golds[i])) {
+            golds.splice(i, 1); player.collected++; AudioFX.gold();
+            const rect = canvas.getBoundingClientRect();
+            const sx = rect.left + (golds[i] ? golds[i].x : 0) * (rect.width / screenWidth);
+            const sy = rect.top + (golds[i] ? golds[i].y : 0) * (rect.height / screenHeight);
+            updateHUD();
+        }
+    }
+    const hitTrap = traps.some(t => rectCollide(pr, t));
+    const hitEnemy = enemies.some(e => !e.trapped && rectCollide(pr, e.rect()));
+    const fellOff = player.y > screenHeight - 10;
+    if (hitTrap || hitEnemy || fellOff) {
+        AudioFX.lose(); generateLevel(currentLevel);
+        requestAnimationFrame(gameLoop); return;
+    }
+    if (golds.length === 0 && !win) {
+        win = true;
+        const cols = Math.floor(screenWidth / BLOCK_SIZE);
+        let groundRow = 0;
+        for (const b of bricks) {
+            const br = Math.floor(b.y / BLOCK_SIZE);
+            if (br > groundRow) groundRow = br;
+        }
+        const exitRow = groundRow - 1;
+        const candidates = [];
+        for (let c = 2; c < cols - 2; c++) {
+            const hasBrickHere = bricks.some(b => Math.floor(b.x / BLOCK_SIZE) === c && Math.floor(b.y / BLOCK_SIZE) === exitRow);
+            if (hasBrickHere) continue;
+            const hasGround = bricks.some(b => Math.floor(b.x / BLOCK_SIZE) === c && Math.floor(b.y / BLOCK_SIZE) === groundRow);
+            if (!hasGround) continue;
+            const nearLadder = ladders.some(l => Math.floor(l.x / BLOCK_SIZE) === c && Math.floor(l.y / BLOCK_SIZE) <= exitRow && Math.floor(l.y / BLOCK_SIZE) + Math.floor(l.h / BLOCK_SIZE) >= exitRow);
+            candidates.push({ col: c, nearLadder });
+        }
+        let exitCol = Math.floor(cols / 2);
+        if (candidates.length > 0) {
+            const ladderCandidates = candidates.filter(c => c.nearLadder);
+            const pool = ladderCandidates.length > 0 ? ladderCandidates : candidates;
+            exitCol = pool[Math.floor(Math.random() * pool.length)].col;
+        }
+        exitLadder = { x: exitCol * BLOCK_SIZE, y: exitRow * BLOCK_SIZE, w: BLOCK_SIZE, h: BLOCK_SIZE };
+        AudioFX.win(); updateHUD();
+    }
+    if (win && exitLadder && rectCollide(pr, exitLadder)) {
+        currentLevel++;
+        if (currentLevel > MAX_LEVEL) currentLevel = 1;
+        try {
+            const prev = JSON.parse(localStorage.getItem('goldminer_save_v2')) || {};
+            localStorage.setItem('goldminer_save_v2', JSON.stringify({ level: currentLevel, maxLevel: Math.max(currentLevel, prev.maxLevel || 1) }));
+        } catch {}
+        generateLevel(currentLevel);
+        requestAnimationFrame(gameLoop); return;
+    }
+    for (const e of enemies) e.update(solidRects, traps, player);
+    for (let i = 0; i < enemies.length; i++) {
+        for (let j = i + 1; j < enemies.length; j++) {
+            const a = enemies[i], b = enemies[j];
+            if (a.trapped || b.trapped) continue;
+            if (rectCollide(a.rect(), b.rect())) {
+                if (a.x < b.x) { a.x -= 1; b.x += 1; } else { a.x += 1; b.x -= 1; }
+            }
+        }
+    }
+    ctx.fillStyle = COLORS.white; ctx.fillRect(0, 0, screenWidth, screenHeight);
+    for (const b of bricks) b.draw();
+    for (const t of traps) drawTrap(t);
+    for (const lad of ladders) drawLadder(lad);
+    for (const g of golds) drawGold(g);
+    if (exitLadder) {
+        const flash = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(0, 200, 0, ${flash})`;
+        ctx.fillRect(exitLadder.x - 2, exitLadder.y - 2, exitLadder.w + 4, exitLadder.h + 4);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.strokeRect(exitLadder.x + 1, exitLadder.y + 1, exitLadder.w - 2, exitLadder.h - 2);
+        drawLadder(exitLadder, '#fff');
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('出口', exitLadder.x + exitLadder.w / 2, exitLadder.y - 4);
+    }
+    for (const e of enemies) e.draw();
+    player.draw();
+    requestAnimationFrame(gameLoop);
+}
+
+function bindButton(id, keyName) {
+    const btn = document.getElementById(id);
+    const onDown = (e) => { e.preventDefault(); keys[keyName] = true; btn.classList.add('active'); };
+    const onUp   = (e) => { e.preventDefault(); keys[keyName] = false; btn.classList.remove('active'); };
+    btn.addEventListener('touchstart', onDown, { passive: false });
+    btn.addEventListener('touchend', onUp, { passive: false });
+    btn.addEventListener('touchcancel', onUp, { passive: false });
+    btn.addEventListener('mousedown', onDown);
+    btn.addEventListener('mouseup', onUp);
+    btn.addEventListener('mouseleave', onUp);
+}
+bindButton('btnUp', 'up'); bindButton('btnDown', 'down');
+bindButton('btnLeft', 'left'); bindButton('btnRight', 'right');
+bindButton('btnDig', 'dig');
+document.getElementById('btnRetry').addEventListener('click', () => generateLevel(currentLevel));
+document.getElementById('btnRetry').addEventListener('touchstart', (e) => { e.preventDefault(); generateLevel(currentLevel); }, { passive: false });
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+    if (e.key === ' ' || e.key === 'e' || e.key === 'E') keys.dig = true;
+    if (e.key === 'r' || e.key === 'R') generateLevel(currentLevel);
+});
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    if (e.key === ' ' || e.key === 'e' || e.key === 'E') keys.dig = false;
+});
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
+
+try {
+    const saved = JSON.parse(localStorage.getItem('goldminer_save_v2')) || {};
+    if (saved.level && saved.level >= 1 && saved.level <= MAX_LEVEL) currentLevel = saved.level;
+} catch {}
+generateLevel(currentLevel);
+resizeCanvas();
+gameLoop();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw-gold.js').catch(() => {});
+}
+</script>
+</body>
+</html>

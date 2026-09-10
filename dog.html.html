@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="theme-color" content="#c00000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="dog.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="dog-icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="dog-icon-512.png">
+<link rel="apple-touch-icon" href="dog-icon-192.png">
+<title>🐶 找小狗</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+body { background: #c0c0c0; font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; touch-action: manipulation; padding: 6px; }
+#game { background: #c0c0c0; padding: 10px; max-width: 500px; width: 100%; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; }
+#top-bar { background: #c0c0c0; padding: 6px 4px; margin-bottom: 6px; border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.counter, .timer { background: #000; color: #ff0000; font-size: 28px; font-weight: bold; font-family: 'Courier New', monospace; padding: 2px 10px; min-width: 60px; text-align: center; letter-spacing: 2px; border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+#reset-btn { font-size: 32px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; padding: 0 20px; cursor: pointer; line-height: 1.4; }
+#reset-btn:active { border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+.icon-btn { font-size: 22px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; padding: 0 12px; cursor: pointer; line-height: 1.4; }
+#grid { display: grid; gap: 1px; background: #808080; border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; touch-action: manipulation; }
+.cell { background: #c0c0c0; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; cursor: pointer; border: 2px solid #fff; border-right-color: #808080; border-bottom-color: #808080; min-height: 40px; }
+.cell.revealed { background: #d1d1d1; border: 1px solid #808080; }
+.cell:active:not(.revealed) { border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+.cell.flagged { background: #c0c0c0; }
+.cell.mine-exploded { background: #ff0000; }
+.n1 { color: #0000ff; } .n2 { color: #008000; } .n3 { color: #ff0000; } .n4 { color: #000080; }
+.n5 { color: #800000; } .n6 { color: #008080; } .n7 { color: #000000; } .n8 { color: #808080; }
+#menu { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+#menu button { flex: 1; padding: 6px 4px; font-size: 13px; background: #c0c0c0; border: 2px solid #fff; border-right-color: #808080; border-bottom-color: #808080; cursor: pointer; min-width: 60px; }
+#menu button:active { border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+#menu button.active { border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; background: #b0b0b0; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: #c0c0c0; padding: 30px 24px; border: 4px solid #fff; border-right-color: #808080; border-bottom-color: #808080; text-align: center; max-width: 320px; width: 90%; }
+.modal-box h2 { font-size: 24px; margin-bottom: 12px; }
+.modal-box p { font-size: 16px; margin-bottom: 16px; white-space: pre-line; }
+.modal-box button { font-size: 18px; padding: 8px 22px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; cursor: pointer; margin: 4px; }
+.modal-box button:active { border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+footer { color: #666; font-size: 10px; text-align: center; padding: 8px 4px; }
+.back-link { color: #666; font-size: 12px; text-decoration: none; display: inline-block; padding: 4px 8px; }
+#particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
+#comboEl { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0); font-size: 48px; font-weight: bold; color: #ff6600; text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff; pointer-events: none; z-index: 1001; opacity: 0; transition: transform 0.2s, opacity 0.2s; font-family: 'Courier New', monospace; }
+#settingsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 2000; justify-content: center; align-items: center; padding: 16px; }
+#settingsModal.show { display: flex; }
+#settingsModal .box { background: #2a2a2a; color: #fff; padding: 24px; border-radius: 12px; max-width: 340px; width: 100%; border: 2px solid #555; }
+#settingsModal h3 { margin-bottom: 16px; text-align: center; font-size: 18px; }
+#settingsModal label { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; font-size: 15px; gap: 10px; }
+#settingsModal input[type=checkbox] { width: 20px; height: 20px; accent-color: #ffd700; }
+#settingsModal input[type=range] { width: 140px; accent-color: #ffd700; }
+#settingsModal select { padding: 4px 8px; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; font-size: 14px; }
+#settingsModal .row { display: flex; gap: 8px; margin-top: 20px; }
+#settingsModal button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; color: #fff; }
+#settingsModal #setReset { background: #c00; }
+#settingsModal #setClose { background: #444; }
+@media (max-width: 420px) {
+    .cell { font-size: 18px; min-height: 34px; }
+    .counter, .timer { font-size: 22px; min-width: 50px; padding: 2px 6px; }
+    #reset-btn { font-size: 26px; padding: 0 14px; }
+    #menu button { font-size: 11px; padding: 4px 2px; }
+}
+@media (max-width: 350px) {
+    .cell { font-size: 14px; min-height: 28px; }
+    .counter, .timer { font-size: 18px; min-width: 40px; }
+    #reset-btn { font-size: 20px; padding: 0 10px; }
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+    <div id="top-bar">
+        <div class="counter" id="counter">010</div>
+        <button id="reset-btn" aria-label="重来">🐾</button>
+        <div class="timer" id="timer">000</div>
+        <button class="icon-btn" id="dogSettings" aria-label="设置">⚙️</button>
+    </div>
+    <div id="menu">
+        <button data-level="easy" aria-label="初级">🐶 初级</button>
+        <button data-level="medium" aria-label="中级">🐶 中级</button>
+        <button data-level="hard" aria-label="高级">🐶 高级</button>
+    </div>
+    <div id="grid"></div>
+    <div style="text-align:center;padding:6px;">
+        <a class="back-link" href="./index.html">◀ 返回菜单</a>
+    </div>
+    <footer>本游戏完全离线运行，不收集任何个人数据。最佳成绩保存在你的浏览器本地。</footer>
+</div>
+
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <h2 id="modal-title">😊</h2>
+        <p id="modal-msg">消息</p>
+        <button id="modal-btn">🐾 再来一局</button>
+        <button id="modal-share">📤 分享</button>
+    </div>
+</div>
+
+<div id="settingsModal">
+    <div class="box">
+        <h3>⚙️ 设置</h3>
+        <label><span>音效</span><input type="checkbox" id="setSfx"></label>
+        <label><span>背景音乐</span><input type="checkbox" id="setBgm"></label>
+        <label><span>音乐音量</span><input type="range" id="setVol" min="0" max="100"></label>
+        <label><span>语言</span>
+            <select id="setLang">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+        </label>
+        <div class="row">
+            <button id="setReset">重置存档</button>
+            <button id="setClose">关闭</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="particleCanvas"></canvas>
+<div id="comboEl"></div>
+
+<script>
+/* ============================================================
+ *  公共模块
+ * ============================================================ */
+const Settings = (() => {
+    const KEY = 'minigames_settings_v1';
+    const defaults = { sfx: true, bgm: true, bgmVolume: 0.5, lang: 'zh' };
+    let data = { ...defaults };
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s) data = { ...defaults, ...s }; } catch {}
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+    function apply() {
+        if (typeof AudioFX !== 'undefined' && AudioFX.setEnabled) AudioFX.setEnabled(data.sfx);
+        if (typeof BGM !== 'undefined') {
+            if (data.bgm) { BGM.start(); BGM.setVolume(data.bgmVolume); }
+            else BGM.stop();
+        }
+    }
+    return {
+        get: k => data[k],
+        set: (k, v) => { data[k] = v; save(); apply(); },
+        reset: () => { data = { ...defaults }; save(); apply(); },
+        apply
+    };
+})();
+
+const AudioFX = (() => {
+    let ctxAudio = null, enabled = true;
+    function ensure() {
+        if (!ctxAudio) {
+            try { ctxAudio = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch { enabled = false; }
+        }
+        if (ctxAudio && ctxAudio.state === 'suspended') ctxAudio.resume();
+    }
+    function beep(freq, duration, type = 'square', volume = 0.08) {
+        if (!enabled) return;
+        ensure(); if (!ctxAudio) return;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, ctxAudio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctxAudio.currentTime + duration);
+        osc.connect(gain); gain.connect(ctxAudio.destination);
+        osc.start(); osc.stop(ctxAudio.currentTime + duration);
+    }
+    return {
+        click: () => beep(600, 0.03, 'square', 0.05),
+        flag: () => beep(1000, 0.06, 'triangle', 0.07),
+        explode: () => beep(80, 0.5, 'sawtooth', 0.15),
+        win: () => { [523,659,784,1046].forEach((f,i) => setTimeout(() => beep(f, 0.15, 'triangle', 0.1), i*100)); },
+        unlock: () => ensure(),
+        setEnabled: v => { enabled = v; }
+    };
+})();
+
+['touchstart','mousedown','keydown'].forEach(ev =>
+    window.addEventListener(ev, () => AudioFX.unlock(), { once: true })
+);
+
+const BGM = (() => {
+    let ctxBGM = null, masterGain = null, isPlaying = false, loopTimer = null, currentStep = 0;
+    const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    const BASS = [65.41, 65.41, 87.31, 98.00, 65.41, 65.41, 87.31, 98.00];
+    const MELODY = [0, 2, 4, 2, 5, 4, 2, 0, 1, 3, 5, 3, 6, 5, 3, 1];
+    const STEP_MS = 220;
+    function ensureCtx() {
+        if (!ctxBGM) {
+            try { ctxBGM = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch { return false; }
+        }
+        if (ctxBGM.state === 'suspended') ctxBGM.resume();
+        return true;
+    }
+    function playNote(freq, duration, type, volume, when) {
+        if (!ctxBGM) return;
+        const osc = ctxBGM.createOscillator();
+        const gain = ctxBGM.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        const t0 = when || ctxBGM.currentTime;
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(volume, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+        osc.connect(gain); gain.connect(masterGain);
+        osc.start(t0); osc.stop(t0 + duration);
+    }
+    function tick() {
+        if (!isPlaying || !ctxBGM) return;
+        const now = ctxBGM.currentTime;
+        const noteIdx = MELODY[currentStep % MELODY.length];
+        if (noteIdx > 0) playNote(SCALE[noteIdx - 1], 0.35, 'triangle', 0.06, now);
+        if (currentStep % 4 === 0) {
+            const bassIdx = Math.floor(currentStep / 4) % BASS.length;
+            playNote(BASS[bassIdx], 0.7, 'sine', 0.10, now);
+        }
+        if (currentStep % 2 === 0) {
+            const osc = ctxBGM.createOscillator();
+            const gain = ctxBGM.createGain();
+            osc.type = 'square'; osc.frequency.value = 60;
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(now); osc.stop(now + 0.08);
+        }
+        currentStep++;
+        loopTimer = setTimeout(tick, STEP_MS);
+    }
+    return {
+        start() {
+            if (isPlaying) return;
+            if (!ensureCtx()) return;
+            if (!masterGain) { masterGain = ctxBGM.createGain(); masterGain.gain.value = 0.5; masterGain.connect(ctxBGM.destination); }
+            isPlaying = true; currentStep = 0; tick();
+        },
+        stop() { isPlaying = false; if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; } },
+        setVolume(v) { if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v)); },
+        isPlaying() { return isPlaying; }
+    };
+})();
+
+const Particles = (() => {
+    const canvas = document.getElementById('particleCanvas');
+    const pctx = canvas.getContext('2d');
+    let list = [], rafId = null;
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    function spawn(x, y, color, count = 8, speed = 3) {
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+            const v = speed * (0.5 + Math.random());
+            list.push({ x, y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v - 1, life: 1, decay: 0.02 + Math.random() * 0.02, color, size: 2 + Math.random() * 3 });
+        }
+        if (!rafId) loop();
+    }
+    function loop() {
+        rafId = requestAnimationFrame(loop);
+        pctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = list.length - 1; i >= 0; i--) {
+            const p = list[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.vx *= 0.98; p.life -= p.decay;
+            if (p.life <= 0) { list.splice(i, 1); continue; }
+            pctx.globalAlpha = p.life; pctx.fillStyle = p.color;
+            pctx.beginPath(); pctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); pctx.fill();
+        }
+        pctx.globalAlpha = 1;
+        if (list.length === 0) { cancelAnimationFrame(rafId); rafId = null; pctx.clearRect(0, 0, canvas.width, canvas.height); }
+    }
+    return { spawn };
+})();
+
+let comboCount = 0, comboTimer = null;
+const comboEl = document.getElementById('comboEl');
+function registerCombo() {
+    comboCount++;
+    if (comboTimer) clearTimeout(comboTimer);
+    comboTimer = setTimeout(() => { comboCount = 0; }, 1500);
+    if (comboCount >= 3) {
+        comboEl.textContent = comboCount + ' 连击!';
+        comboEl.style.transform = 'translate(-50%,-50%) scale(1.2)';
+        comboEl.style.opacity = '1';
+        setTimeout(() => { comboEl.style.transform = 'translate(-50%,-50%) scale(1)'; }, 100);
+        setTimeout(() => { comboEl.style.opacity = '0'; }, 600);
+    }
+}
+
+/* ---------- 设置弹窗 ---------- */
+const settingsModal = document.getElementById('settingsModal');
+function openSettings() {
+    document.getElementById('setSfx').checked = Settings.get('sfx');
+    document.getElementById('setBgm').checked = Settings.get('bgm');
+    document.getElementById('setVol').value = Math.round(Settings.get('bgmVolume') * 100);
+    document.getElementById('setLang').value = Settings.get('lang');
+    settingsModal.classList.add('show');
+}
+document.getElementById('dogSettings').addEventListener('click', openSettings);
+document.getElementById('setSfx').addEventListener('change', e => Settings.set('sfx', e.target.checked));
+document.getElementById('setBgm').addEventListener('change', e => Settings.set('bgm', e.target.checked));
+document.getElementById('setVol').addEventListener('input', e => Settings.set('bgmVolume', e.target.value / 100));
+document.getElementById('setLang').addEventListener('change', e => Settings.set('lang', e.target.value));
+document.getElementById('setReset').addEventListener('click', () => {
+    if (confirm('确定要重置所有存档和设置吗？')) {
+        localStorage.removeItem('dogsweeper_best_v1');
+        Settings.reset();
+        alert('已重置');
+        location.reload();
+    }
+});
+document.getElementById('setClose').addEventListener('click', () => settingsModal.classList.remove('show'));
+settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.classList.remove('show'); });
+
+['touchstart','mousedown','keydown'].forEach(ev =>
+    window.addEventListener(ev, () => { if (Settings.get('bgm')) Settings.apply(); }, { once: true })
+);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) BGM.stop();
+    else if (Settings.get('bgm')) BGM.start();
+});
+
+function shareResult(text) {
+    if (navigator.share) navigator.share({ title: '抓小狗', text, url: location.href }).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(text + ' ' + location.href).then(() => alert('已复制，去分享吧！')).catch(() => {});
+    else prompt('复制这段文字分享：', text + ' ' + location.href);
+}
+
+/* ============================================================
+ *  抓小狗
+ * ============================================================ */
+const LEVELS = {
+    easy:   { rows: 9,  cols: 9,  dogs: 10 },
+    medium: { rows: 16, cols: 16, dogs: 40 },
+    hard:   { rows: 16, cols: 30, dogs: 99 }
+};
+const LONG_PRESS_DELAY = 400, LONG_PRESS_MOVE = 12;
+
+let config = { rows: 9, cols: 9, dogs: 10 };
+let grid = [], dogPositions = new Set();
+let revealedCount = 0, flagCount = 0;
+let gameOver = false, firstClick = true;
+let timerRunning = false, seconds = 0, timerInterval = null;
+
+const gridEl = document.getElementById('grid');
+const counterEl = document.getElementById('counter');
+const timerEl = document.getElementById('timer');
+const resetBtn = document.getElementById('reset-btn');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalMsg = document.getElementById('modal-msg');
+const modalBtn = document.getElementById('modal-btn');
+const modalShare = document.getElementById('modal-share');
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+function initGame(level = 'easy') {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerRunning = false; seconds = 0; timerEl.textContent = '000';
+    config = LEVELS[level];
+    const { rows, cols } = config;
+    grid = []; dogPositions = new Set();
+    revealedCount = 0; flagCount = 0; gameOver = false; firstClick = true;
+    resetBtn.textContent = '🐾';
+    for (let r = 0; r < rows; r++) {
+        grid[r] = [];
+        for (let c = 0; c < cols; c++) grid[r][c] = { revealed: false, flagged: false, dog: false, adjCount: 0 };
+    }
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    gridEl.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell'; cell.dataset.r = r; cell.dataset.c = c;
+        bindTapEvents(cell, r, c);
+        frag.appendChild(cell);
+    }
+    gridEl.appendChild(frag);
+    updateCounter();
+}
+
+function bindTapEvents(el, r, c) {
+    let longPressTimer = null, touchStartX = 0, touchStartY = 0, moved = false, longPressFired = false;
+    const cancelLP = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+    el.addEventListener('touchstart', (e) => {
+        if (gameOver) return;
+        const t = e.touches[0];
+        touchStartX = t.clientX; touchStartY = t.clientY;
+        moved = false; longPressFired = false; cancelLP();
+        longPressTimer = setTimeout(() => {
+            longPressTimer = null;
+            if (moved || gameOver) return;
+            longPressFired = true;
+            if (navigator.vibrate) navigator.vibrate(30);
+            handleRightClick(r, c);
+        }, LONG_PRESS_DELAY);
+    }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        if (Math.abs(t.clientX - touchStartX) > LONG_PRESS_MOVE || Math.abs(t.clientY - touchStartY) > LONG_PRESS_MOVE) {
+            moved = true; cancelLP();
+        }
+    }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+        e.preventDefault(); cancelLP();
+        if (moved || gameOver) return;
+        if (longPressFired) return;
+        handleLeftClick(r, c);
+    }, { passive: false });
+    el.addEventListener('touchcancel', cancelLP, { passive: true });
+    el.addEventListener('click', () => { if ('ontouchstart' in window) return; handleLeftClick(r, c); });
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); handleRightClick(r, c); });
+}
+
+function placeDogs(safeRow, safeCol) {
+    const { rows, cols, dogs } = config;
+    const safeZone = new Set();
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = safeRow + dr, nc = safeCol + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) safeZone.add(nr + ',' + nc);
+    }
+    const candidates = [];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (!safeZone.has(r + ',' + c)) candidates.push([r, c]);
+    if (candidates.length < dogs) {
+        candidates.length = 0;
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (r !== safeRow || c !== safeCol) candidates.push([r, c]);
+    }
+    const shuffled = candidates.sort(() => Math.random() - 0.5);
+    for (const [r, c] of shuffled.slice(0, dogs)) { grid[r][c].dog = true; dogPositions.add(r + ',' + c); }
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        if (grid[r][c].dog) continue;
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].dog) count++;
+        }
+        grid[r][c].adjCount = count;
+    }
+}
+
+function handleLeftClick(row, col) {
+    if (gameOver) return;
+    const cell = grid[row][col];
+    if (cell.flagged) return;
+    if (cell.revealed) { if (cell.adjCount > 0) chordReveal(row, col); return; }
+    if (firstClick) { placeDogs(row, col); firstClick = false; startTimer(); }
+    if (cell.dog) { gameOverHandler(row, col); return; }
+    AudioFX.click();
+    revealCell(row, col);
+}
+
+function handleRightClick(row, col) {
+    if (gameOver) return;
+    const cell = grid[row][col];
+    if (cell.revealed) return;
+    cell.flagged = !cell.flagged;
+    flagCount += cell.flagged ? 1 : -1;
+    updateCounter();
+    updateCell(row, col);
+    AudioFX.flag();
+    const el = getCellElement(row, col);
+    if (el && cell.flagged) {
+        const rect = el.getBoundingClientRect();
+        Particles.spawn(rect.left + rect.width / 2, rect.top + rect.height / 2, '#ff0000', 5, 2);
+    }
+}
+
+function revealCell(startRow, startCol) {
+    const { rows, cols } = config;
+    const stack = [[startRow, startCol]];
+    const visited = new Set();
+    let revealedThisCall = 0;
+    while (stack.length > 0) {
+        const [row, col] = stack.pop();
+        const key = row + ',' + col;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        const cell = grid[row][col];
+        if (cell.revealed || cell.flagged || cell.dog) continue;
+        cell.revealed = true;
+        revealedCount++;
+        revealedThisCall++;
+        updateCell(row, col);
+        if (cell.adjCount === 0) {
+            for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = row + dr, nc = col + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                    const nk = nr + ',' + nc;
+                    if (!visited.has(nk)) {
+                        const nb = grid[nr][nc];
+                        if (!nb.revealed && !nb.flagged && !nb.dog) stack.push([nr, nc]);
+                    }
+                }
+            }
+        }
+    }
+    if (revealedThisCall > 0) {
+        const el = getCellElement(startRow, startCol);
+        if (el) {
+            const rect = el.getBoundingClientRect();
+            const colors = ['#ffd700', '#ff6600', '#00c800', '#0099ff'];
+            Particles.spawn(rect.left + rect.width / 2, rect.top + rect.height / 2, colors[Math.floor(Math.random() * colors.length)], 6, 2.5);
+            registerCombo();
+        }
+    }
+    checkWin();
+}
+
+function chordReveal(row, col) {
+    const { rows, cols } = config;
+    const cell = grid[row][col];
+    if (!cell.revealed || cell.adjCount === 0) return;
+    let flagCountAround = 0;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = row + dr, nc = col + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].flagged) flagCountAround++;
+    }
+    if (flagCountAround !== cell.adjCount) return;
+    const toReveal = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = row + dr, nc = col + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            const nb = grid[nr][nc];
+            if (!nb.revealed && !nb.flagged) {
+                if (nb.dog) { gameOverHandler(nr, nc); return; }
+                toReveal.push([nr, nc]);
+            }
+        }
+    }
+    for (const [nr, nc] of toReveal) {
+        if (!grid[nr][nc].revealed && !grid[nr][nc].flagged && !grid[nr][nc].dog) revealCell(nr, nc);
+    }
+}
+
+function gameOverHandler(row, col) {
+    if (gameOver) return;
+    gameOver = true;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    AudioFX.explode();
+    Particles.spawn(window.innerWidth / 2, window.innerHeight / 2, '#ff0000', 30, 6);
+    Particles.spawn(window.innerWidth / 2, window.innerHeight / 2, '#ff6600', 20, 4);
+    const el = getCellElement(row, col);
+    el.textContent = '😊'; el.classList.add('revealed', 'mine-exploded');
+    resetBtn.textContent = '😵';
+    for (const key of dogPositions) {
+        const [r, c] = key.split(',').map(Number);
+        if (!grid[r][c].revealed) {
+            const e = getCellElement(r, c);
+            e.textContent = '🐶'; e.classList.add('revealed');
+            grid[r][c].revealed = true;
+        }
+    }
+    for (let r = 0; r < config.rows; r++) for (let c = 0; c < config.cols; c++) {
+        const cell = grid[r][c];
+        if (cell.flagged && !cell.dog) {
+            const e = getCellElement(r, c);
+            e.textContent = '❌'; e.classList.add('revealed');
+        }
+    }
+    showModal('💀', '哎呀！踩到小狗了！🐶', '🐾 再来一局');
+}
+
+function checkWin() {
+    const total = config.rows * config.cols;
+    if (revealedCount === total - config.dogs) {
+        gameOver = true;
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        AudioFX.win();
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                Particles.spawn(
+                    Math.random() * window.innerWidth,
+                    Math.random() * window.innerHeight,
+                    ['#ffd700', '#ff6600', '#00c800', '#0099ff'][i % 4], 15, 5
+                );
+            }, i * 120);
+        }
+        resetBtn.textContent = '😎';
+        for (const key of dogPositions) {
+            const [r, c] = key.split(',').map(Number);
+            const e = getCellElement(r, c);
+            e.textContent = '🐶'; e.classList.add('revealed');
+            e.style.background = '#ffff99';
+        }
+        const levelKey = getCurrentLevel();
+        let best = 0;
+        try {
+            const all = JSON.parse(localStorage.getItem('dogsweeper_best_v1')) || {};
+            if (!all[levelKey] || seconds < all[levelKey]) { all[levelKey] = seconds; localStorage.setItem('dogsweeper_best_v1', JSON.stringify(all)); }
+            best = all[levelKey];
+        } catch {}
+        showModal('🎉', `你找到了所有小狗！\n用时 ${seconds} 秒（最佳 ${best} 秒）`, '🐾 再来一局');
+    }
+}
+
+function getCellElement(row, col) { return gridEl.querySelector(`[data-r="${row}"][data-c="${col}"]`); }
+
+function updateCell(r, c) {
+    const cell = grid[r][c];
+    const el = getCellElement(r, c);
+    if (!el) return;
+    if (cell.revealed) {
+        el.classList.add('revealed'); el.classList.remove('flagged');
+        if (cell.adjCount > 0 && el.textContent === '') { el.textContent = cell.adjCount; el.classList.add('n' + cell.adjCount); }
+    } else if (cell.flagged) {
+        el.textContent = '🚩'; el.classList.add('flagged');
+    } else {
+        el.textContent = ''; el.classList.remove('flagged', 'revealed'); el.className = 'cell';
+    }
+}
+
+function updateCounter() {
+    const remaining = config.dogs - flagCount;
+    counterEl.textContent = String(remaining).padStart(3, '0');
+}
+
+function startTimer() {
+    if (timerRunning) return;
+    timerRunning = true;
+    timerInterval = setInterval(() => {
+        seconds++;
+        timerEl.textContent = String(seconds).padStart(3, '0');
+        if (seconds >= 999) { clearInterval(timerInterval); timerInterval = null; }
+    }, 1000);
+}
+
+function showModal(title, msg, btnText) {
+    modalTitle.textContent = title; modalMsg.textContent = msg; modalBtn.textContent = btnText;
+    modal.classList.add('active');
+}
+modalBtn.addEventListener('click', () => { modal.classList.remove('active'); initGame(getCurrentLevel()); });
+modal.addEventListener('click', (e) => { if (e.target === modal) { modal.classList.remove('active'); initGame(getCurrentLevel()); } });
+modalShare.addEventListener('click', () => {
+    const levelKey = getCurrentLevel();
+    let best = 0;
+    try { best = (JSON.parse(localStorage.getItem('dogsweeper_best_v1')) || {})[levelKey] || 0; } catch {}
+    shareResult(`我在《找小狗》${levelKey}难度用了 ${seconds} 秒（最佳 ${best} 秒）！`);
+});
+
+function getCurrentLevel() {
+    const active = document.querySelector('#menu button.active');
+    return active ? active.dataset.level : 'easy';
+}
+document.querySelectorAll('#menu button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#menu button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        initGame(btn.dataset.level);
+    });
+});
+resetBtn.addEventListener('click', () => {
+    if (modal.classList.contains('active')) modal.classList.remove('active');
+    initGame(getCurrentLevel());
+});
+
+document.querySelector('#menu button[data-level="easy"]').classList.add('active');
+initGame('easy');
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw-dog.js').catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="icon" type="image/png" sizes="192x192" href="gold-icon-192.png">
+<title>🎮 小游戏合集</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); font-family: 'Segoe UI', Arial, sans-serif; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+h1 { font-size: 26px; margin-bottom: 8px; text-align: center; background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+.subtitle { color: #8899aa; font-size: 12px; margin-bottom: 28px; text-align: center; }
+.menu { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
+.game-card { display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12); border-radius: 16px; text-decoration: none; color: #fff; transition: transform 0.15s, background 0.15s, border-color 0.15s; cursor: pointer; }
+.game-card:active { transform: scale(0.97); background: rgba(255,215,0,0.15); border-color: rgba(255,215,0,0.5); }
+.game-icon { font-size: 42px; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 14px; flex-shrink: 0; }
+.game-info { flex: 1; min-width: 0; }
+.game-info h2 { font-size: 18px; margin-bottom: 4px; }
+.game-info p { font-size: 12px; color: #99aabb; line-height: 1.4; }
+.game-arrow { font-size: 22px; color: #ffd700; flex-shrink: 0; }
+footer { margin-top: 32px; color: #556677; font-size: 10px; text-align: center; line-height: 1.6; max-width: 420px; }
+</style>
+</head>
+<body>
+<h1>🎮 小游戏合集</h1>
+<div class="subtitle">选一个开始玩吧</div>
+<div class="menu">
+    <a class="game-card" href="./gold.html" aria-label="进入淘金者">
+        <div class="game-icon">⛏️</div>
+        <div class="game-info"><h2>淘金者</h2><p>挖坑、爬梯、躲避敌人，收集所有金币打开出口</p></div>
+        <div class="game-arrow">▶</div>
+    </a>
+    <a class="game-card" href="./dog.html" aria-label="进入抓小狗">
+        <div class="game-icon">🐶</div>
+        <div class="game-info"><h2>抓小狗</h2><p>经典扫雷玩法：单击翻开，长按插旗，找到所有小狗</p></div>
+        <div class="game-arrow">▶</div>
+    </a>
+</div>
+<footer>本合集完全离线运行，不收集任何个人数据。<br>所有进度与最佳成绩均保存在你的浏览器本地。</footer>
+</body>
+</html>
