@@ -1,4 +1,4 @@
-const CACHE = 'dogsweeper-v1';
+const CACHE = 'dogsweeper-v2';
 const ASSETS = [
     './dog.html',
     './dog.webmanifest',
