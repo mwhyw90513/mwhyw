@@ -1,4 +1,4 @@
-const CACHE = 'goldminer-v1';
+const CACHE = 'goldminer-v2';
 const ASSETS = [
     './gold.html',
     './gold.webmanifest',
