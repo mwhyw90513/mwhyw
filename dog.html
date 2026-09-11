@@ -435,19 +435,24 @@ function initGame(level = 'easy') {
 /* 单击：根据 flagMode 决定翻开还是插旗
    桌面端右键：始终插旗 */
 function bindTapEvents(el, r, c) {
+    let touchHandled = false;
+
     el.addEventListener('click', (e) => {
         e.preventDefault();
+        if (touchHandled) { touchHandled = false; return; }
         if (gameOver) return;
         if (flagMode) handleRightClick(r, c);
         else handleLeftClick(r, c);
     });
+
     el.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         handleRightClick(r, c);
     });
-    // 移动端触摸：直接调 click 会慢 300ms，用 touchstart 立即响应
-    el.addEventListener('touchstart', (e) => {
+
+    el.addEventListener('touchend', (e) => {
         e.preventDefault();
+        touchHandled = true;
         if (gameOver) return;
         if (flagMode) handleRightClick(r, c);
         else handleLeftClick(r, c);
