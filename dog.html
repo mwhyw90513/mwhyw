@@ -17,9 +17,27 @@ body { background: #c0c0c0; font-family: 'Segoe UI', Arial, sans-serif; display:
 #game { background: #c0c0c0; padding: 10px; max-width: 500px; width: 100%; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; }
 #top-bar { background: #c0c0c0; padding: 6px 4px; margin-bottom: 6px; border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
 .counter, .timer { background: #000; color: #ff0000; font-size: 28px; font-weight: bold; font-family: 'Courier New', monospace; padding: 2px 10px; min-width: 60px; text-align: center; letter-spacing: 2px; border: 2px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
-#reset-btn { font-size: 32px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; padding: 0 20px; cursor: pointer; line-height: 1.4; }
-#reset-btn:active { border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
-.icon-btn { font-size: 22px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; padding: 0 12px; cursor: pointer; line-height: 1.4; }
+/* 顶部按钮样式（红旗/铁锹/重来） */
+.top-btn {
+    font-size: 26px;
+    background: #c0c0c0;
+    border: 3px solid #fff;
+    border-right-color: #808080;
+    border-bottom-color: #808080;
+    padding: 0 14px;
+    cursor: pointer;
+    line-height: 1.5;
+    min-width: 56px;
+    text-align: center;
+}
+.top-btn:active { border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
+.top-btn.active-mode {
+    border: 3px solid #808080;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+    background: #d8d8d8;
+}
+#modeBtn { font-size: 26px; }
 #grid { display: grid; gap: 1px; background: #808080; border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; touch-action: manipulation; }
 .cell { background: #c0c0c0; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; cursor: pointer; border: 2px solid #fff; border-right-color: #808080; border-bottom-color: #808080; min-height: 40px; }
 .cell.revealed { background: #d1d1d1; border: 1px solid #808080; }
@@ -40,6 +58,20 @@ body { background: #c0c0c0; font-family: 'Segoe UI', Arial, sans-serif; display:
 .modal-box button { font-size: 18px; padding: 8px 22px; background: #c0c0c0; border: 3px solid #fff; border-right-color: #808080; border-bottom-color: #808080; cursor: pointer; margin: 4px; }
 .modal-box button:active { border: 3px solid #808080; border-right-color: #fff; border-bottom-color: #fff; }
 footer { color: #666; font-size: 10px; text-align: center; padding: 8px 4px; }
+/* 操作说明 */
+#howto {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #d8d8d8;
+    border: 2px solid #fff;
+    border-right-color: #808080;
+    border-bottom-color: #808080;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.7;
+}
+#howto b { color: #c00000; }
+#howto .row { display: flex; justify-content: space-between; gap: 8px; }
 .back-link { color: #666; font-size: 12px; text-decoration: none; display: inline-block; padding: 4px 8px; }
 #particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
 #comboEl { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0); font-size: 48px; font-weight: bold; color: #ff6600; text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff; pointer-events: none; z-index: 1001; opacity: 0; transition: transform 0.2s, opacity 0.2s; font-family: 'Courier New', monospace; }
@@ -58,13 +90,14 @@ footer { color: #666; font-size: 10px; text-align: center; padding: 8px 4px; }
 @media (max-width: 420px) {
     .cell { font-size: 18px; min-height: 34px; }
     .counter, .timer { font-size: 22px; min-width: 50px; padding: 2px 6px; }
-    #reset-btn { font-size: 26px; padding: 0 14px; }
+    .top-btn { font-size: 22px; min-width: 48px; padding: 0 10px; }
     #menu button { font-size: 11px; padding: 4px 2px; }
+    #howto { font-size: 11px; }
 }
 @media (max-width: 350px) {
     .cell { font-size: 14px; min-height: 28px; }
     .counter, .timer { font-size: 18px; min-width: 40px; }
-    #reset-btn { font-size: 20px; padding: 0 10px; }
+    .top-btn { font-size: 18px; min-width: 40px; padding: 0 8px; }
 }
 </style>
 </head>
@@ -73,9 +106,10 @@ footer { color: #666; font-size: 10px; text-align: center; padding: 8px 4px; }
 <div id="game">
     <div id="top-bar">
         <div class="counter" id="counter">010</div>
-        <button id="reset-btn" aria-label="重来">🐾</button>
+        <button id="modeBtn" class="top-btn" aria-label="切换插旗/翻开模式" title="切换插旗/翻开">🚩</button>
+        <button id="reset-btn" class="top-btn" aria-label="重来">🐾</button>
         <div class="timer" id="timer">000</div>
-        <button class="icon-btn" id="dogSettings" aria-label="设置">⚙️</button>
+        <button class="top-btn" id="dogSettings" aria-label="设置">⚙️</button>
     </div>
     <div id="menu">
         <button data-level="easy" aria-label="初级">🐶 初级</button>
@@ -83,6 +117,13 @@ footer { color: #666; font-size: 10px; text-align: center; padding: 8px 4px; }
         <button data-level="hard" aria-label="高级">🐶 高级</button>
     </div>
     <div id="grid"></div>
+
+    <div id="howto">
+        <div class="row"><span>👆 <b>单击</b>：翻开格子</span><span>🚩 <b>红旗模式</b>：单击插旗</span></div>
+        <div class="row"><span>🔢 数字：周围小狗数</span><span>🐶 翻开所有非小狗格子获胜</span></div>
+        <div class="row"><span>💡 电脑：右键插旗</span><span>⚙️ 右上角设置音效/音乐</span></div>
+    </div>
+
     <div style="text-align:center;padding:6px;">
         <a class="back-link" href="./index.html">◀ 返回菜单</a>
     </div>
@@ -332,18 +373,20 @@ const LEVELS = {
     medium: { rows: 16, cols: 16, dogs: 40 },
     hard:   { rows: 16, cols: 30, dogs: 99 }
 };
-const LONG_PRESS_DELAY = 400, LONG_PRESS_MOVE = 12;
 
 let config = { rows: 9, cols: 9, dogs: 10 };
 let grid = [], dogPositions = new Set();
 let revealedCount = 0, flagCount = 0;
 let gameOver = false, firstClick = true;
 let timerRunning = false, seconds = 0, timerInterval = null;
+/* 模式：false = 翻开模式；true = 插旗模式 */
+let flagMode = false;
 
 const gridEl = document.getElementById('grid');
 const counterEl = document.getElementById('counter');
 const timerEl = document.getElementById('timer');
 const resetBtn = document.getElementById('reset-btn');
+const modeBtn = document.getElementById('modeBtn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalMsg = document.getElementById('modal-msg');
@@ -352,6 +395,17 @@ const modalShare = document.getElementById('modal-share');
 
 document.addEventListener('contextmenu', e => e.preventDefault());
 
+function updateModeBtn() {
+    modeBtn.textContent = flagMode ? '🚩' : '⛏️';
+    modeBtn.classList.toggle('active-mode', flagMode);
+    modeBtn.title = flagMode ? '当前：插旗模式（点击切换为翻开）' : '当前：翻开模式（点击切换为插旗）';
+}
+modeBtn.addEventListener('click', () => {
+    flagMode = !flagMode;
+    updateModeBtn();
+    if (navigator.vibrate) navigator.vibrate(15);
+});
+
 function initGame(level = 'easy') {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     timerRunning = false; seconds = 0; timerEl.textContent = '000';
@@ -359,6 +413,7 @@ function initGame(level = 'easy') {
     const { rows, cols } = config;
     grid = []; dogPositions = new Set();
     revealedCount = 0; flagCount = 0; gameOver = false; firstClick = true;
+    flagMode = false; updateModeBtn();
     resetBtn.textContent = '🐾';
     for (let r = 0; r < rows; r++) {
         grid[r] = [];
@@ -377,37 +432,26 @@ function initGame(level = 'easy') {
     updateCounter();
 }
 
+/* 单击：根据 flagMode 决定翻开还是插旗
+   桌面端右键：始终插旗 */
 function bindTapEvents(el, r, c) {
-    let longPressTimer = null, touchStartX = 0, touchStartY = 0, moved = false, longPressFired = false;
-    const cancelLP = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
-    el.addEventListener('touchstart', (e) => {
+    el.addEventListener('click', (e) => {
+        e.preventDefault();
         if (gameOver) return;
-        const t = e.touches[0];
-        touchStartX = t.clientX; touchStartY = t.clientY;
-        moved = false; longPressFired = false; cancelLP();
-        longPressTimer = setTimeout(() => {
-            longPressTimer = null;
-            if (moved || gameOver) return;
-            longPressFired = true;
-            if (navigator.vibrate) navigator.vibrate(30);
-            handleRightClick(r, c);
-        }, LONG_PRESS_DELAY);
-    }, { passive: true });
-    el.addEventListener('touchmove', (e) => {
-        const t = e.touches[0];
-        if (Math.abs(t.clientX - touchStartX) > LONG_PRESS_MOVE || Math.abs(t.clientY - touchStartY) > LONG_PRESS_MOVE) {
-            moved = true; cancelLP();
-        }
-    }, { passive: true });
-    el.addEventListener('touchend', (e) => {
-        e.preventDefault(); cancelLP();
-        if (moved || gameOver) return;
-        if (longPressFired) return;
-        handleLeftClick(r, c);
+        if (flagMode) handleRightClick(r, c);
+        else handleLeftClick(r, c);
+    });
+    el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        handleRightClick(r, c);
+    });
+    // 移动端触摸：直接调 click 会慢 300ms，用 touchstart 立即响应
+    el.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameOver) return;
+        if (flagMode) handleRightClick(r, c);
+        else handleLeftClick(r, c);
     }, { passive: false });
-    el.addEventListener('touchcancel', cancelLP, { passive: true });
-    el.addEventListener('click', () => { if ('ontouchstart' in window) return; handleLeftClick(r, c); });
-    el.addEventListener('contextmenu', (e) => { e.preventDefault(); handleRightClick(r, c); });
 }
 
 function placeDogs(safeRow, safeCol) {
